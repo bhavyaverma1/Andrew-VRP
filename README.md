@@ -1,9 +1,9 @@
 
-# Target Tracking using DQN
+# Route Planning and Scheduling
 
 This repository contains python implementation of a novel VRP-based Route Planner with multiple resource and time-window constraints.
 
-## Install Required Libraries
+## Install Required Libraries using Conda
 
 Clone this repository.
 ```
