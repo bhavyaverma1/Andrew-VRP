@@ -207,7 +207,7 @@ def generate_solution(data, manager, routing):
             elif data['pref_days'][node]!=None:
                 curr_pref_day = int(data['pref_days'][node])%7
                 if curr_pref_day == data['plan_date'].weekday(): #plan_date.weekday()
-                    print('Hooday',data['job_ids'][node],data['pref_days'][node])
+#                    print('Hooday',data['job_ids'][node],data['pref_days'][node])
                     curr_penalty = 999999
                 else:
                     ## code to skip a node 
