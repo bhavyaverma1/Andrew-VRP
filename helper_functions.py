@@ -48,8 +48,8 @@ def get_driveback_time(location):
 
 def get_distance_time_matrices(df_pending):
     dist_matrix = cdist(df_pending, df_pending, metric=haversine)
-    dist_matrix = [[int(np.ceil(i)) for i in inner] for inner in dist_matrix] # Typecasting to int
-    time_matrix = np.ceil(np.array(dist_matrix)*1.5)     # taking average vehicle speed to be 44 for a straight line traversal  
+    dist_matrix = [[int(np.ceil(i*1.27)) for i in inner] for inner in dist_matrix] # Typecasting to int
+    time_matrix = np.ceil(np.array(dist_matrix)*1.52)     # taking average vehicle speed to be ~40 for a straight line traversal  
     time_matrix = np.int_(time_matrix).tolist()
     for i in range(len(time_matrix)):
         for j in range(len(time_matrix[0])):
@@ -60,7 +60,7 @@ def get_distance_time_matrices(df_pending):
 
 
 """Vehicles Routing Problem (VRP)."""
-def create_data_model(time_matrix, num_vehicles, demands, penalties, end_locations, pref_dates, pref_days, pref_installers, pref_time_windows):
+def create_data_model(time_matrix, num_vehicles, demands, penalties, end_locations, pref_dates, pref_days, pref_installers, pref_time_windows, plan_date, job_ids):
     """Stores the data for the problem."""
     data = {}
     data['time_matrix'] = time_matrix
@@ -73,6 +73,8 @@ def create_data_model(time_matrix, num_vehicles, demands, penalties, end_locatio
     data['pref_days'] = pref_days
     data['pref_installers'] = pref_installers
     data['pref_time_windows'] = pref_time_windows
+    data['plan_date'] = plan_date
+    data['job_ids'] = job_ids
     return data
 
 def extract_routes(num_vehicles, manager, routing, solution):
@@ -87,30 +89,36 @@ def extract_routes(num_vehicles, manager, routing, solution):
         routes[vehicle_id].append(manager.IndexToNode(index))
     return routes
 
-def get_total_distance_load(data, manager, routing, solution):
+def get_distance_load_times(data, manager, routing, solution):
     """Prints assignment on console."""    
-    # Display routes
+    job_times = {}
+    time_dimension = routing.GetDimensionOrDie('Distance')
     total_distance = 0
     total_load = 0
     for vehicle_id in range(data['num_vehicles']):
         index = routing.Start(vehicle_id)
-        plan_output = 'Route for vehicle {}:\n'.format(vehicle_id)
         route_distance = 0
         route_load = 0
         while not routing.IsEnd(index):
+            time_var = time_dimension.CumulVar(index)
             node_index = manager.IndexToNode(index)
             route_load += data['demands'][node_index]
             previous_index = index
+            start_time = solution.Value(time_var)
+            end_time = solution.Value(time_var) + data['demands'][node_index]
+            if index != routing.Start(vehicle_id):
+                job_times[data["job_ids"][node_index]] = {'start_time':start_time,'end_time':end_time,'installer_id':vehicle_id}
             index = solution.Value(routing.NextVar(index))
             route_distance += routing.GetArcCostForVehicle(
                 previous_index, index, vehicle_id)
         total_distance += route_distance
         total_load += route_load
-    return total_distance, total_load
+    return total_distance, total_load, job_times
 
 def print_solution(data, manager, routing, solution):
     """Prints assignment on console."""
-    print(f'Objective: {solution.ObjectiveValue()}')
+    print(f'Planning Date: {data["plan_date"]}')
+#     print(f'Objective: {solution.ObjectiveValue()}')
     # Display dropped nodes.
     dropped_nodes = 'Dropped nodes: '
     for node in range(routing.Size()):
@@ -133,17 +141,18 @@ def print_solution(data, manager, routing, solution):
             time_var = time_dimension.CumulVar(index)
             node_index = manager.IndexToNode(index)
             route_load += data['demands'][node_index]
-            plan_output += ' {0} Job: '.format(node_index, data['demands'][node_index])
+            plan_output += ' ID:{0}, Time:'.format(data["job_ids"][node_index])
             previous_index = index
+            start_time = solution.Value(time_var)
             end_time = solution.Value(time_var)+ data['demands'][node_index]
-            plan_output += f'[{solution.Value(time_var)}-{end_time}] -> '
+            plan_output += f'({start_time}-{end_time}) -> '
             index = solution.Value(routing.NextVar(index))
             route_distance += routing.GetArcCostForVehicle(
                 previous_index, index, vehicle_id)
-        plan_output += ' {0} Job @ ({1}min)\n'.format(manager.IndexToNode(index),
+        plan_output += ' Ins_End {0} @ ({1}min)\n'.format(vehicle_id,
                                                  route_distance)
         plan_output += 'Total time spent: {}min\n'.format(route_distance)
-        plan_output += 'Total job_time spent: {}min\n'.format(route_load)
+        plan_output += 'Total job time spent: {}min\n'.format(route_load)
         print(plan_output)
         total_distance += route_distance
         total_load += route_load
@@ -184,8 +193,8 @@ def generate_solution(data, manager, routing):
         else:
             ## [[ START -- HANDLING DATE AND DAY CONSTRAINTS ]]
             if data['pref_dates'][node]!=None:
-                if data['pref_dates'][node]== datetime.date(2023, 2, 15): # plan date
-                    print('Hooray',node)
+                if data['pref_dates'][node]== data['plan_date']: # plan date
+#                     print('Hooray',node, data['pref_dates'][node])
                     curr_penalty = 999999
                 else:
                     ## code to skip a node 
@@ -197,7 +206,8 @@ def generate_solution(data, manager, routing):
                     
             elif data['pref_days'][node]!=None:
                 curr_pref_day = int(data['pref_days'][node])%7
-                if curr_pref_day == 0: #plan_date.weekday()
+                if curr_pref_day == data['plan_date'].weekday(): #plan_date.weekday()
+                    print('Hooday',data['job_ids'][node],data['pref_days'][node])
                     curr_penalty = 999999
                 else:
                     ## code to skip a node 
@@ -215,7 +225,7 @@ def generate_solution(data, manager, routing):
                 else:
                     curr_penalty = base_penalty - 100*int(data['penalties'][node])
 #             print(node, data['pref_dates'][node], curr_penalty, data['penalties'][node])
-            print(node, curr_penalty)
+#             print(node, curr_penalty)
             routing.AddDisjunction([manager.NodeToIndex(node)], curr_penalty)
     
     # HANDLE SPECIFIC INSTALLER CONSTRAINT
@@ -234,13 +244,10 @@ def generate_solution(data, manager, routing):
         if(node in data['starts'] or node in data['ends']):
             continue
         else:
-            
             if data['pref_time_windows'][node]!=None:
-                if node in []: # [17,18,52,55,64,71,79,86,87,89,97]
-                    continue
                 pref_start_time = data['pref_time_windows'][node][0]-480
                 pref_end_time = data['pref_time_windows'][node][1]-480
-                print(node,pref_start_time, pref_end_time)
+#                 print(node,pref_start_time, pref_end_time)
                 distance_dimension.CumulVar(manager.NodeToIndex(node)).SetRange(pref_start_time, pref_end_time)
 
     # Setting first solution heuristic.
@@ -257,7 +264,7 @@ def generate_solution(data, manager, routing):
     for i in range(5):
         solution = routing.SolveWithParameters(search_parameters)
         if solution:
-            total_distance,total_load = get_total_distance_load(data, manager, routing, solution)
+            total_distance,total_load,_ = get_distance_load_times(data, manager, routing, solution)
             curr_answer = 7*total_load - 5*total_distance # CHANGE THE WEIGHTS HERE
             if curr_answer>best_answer:
                 best_solution = solution
@@ -268,10 +275,10 @@ def generate_solution(data, manager, routing):
         print_solution(data, manager, routing, best_solution)
     return best_solution
 
-def solve_vrp_for(time_matrix_original, num_vehicles, demands, penalties, end_locations, pref_dates, pref_days, pref_installers, pref_time_windows):
+def solve_vrp_for(time_matrix_original, num_vehicles, demands, penalties, end_locations, pref_dates, pref_days, pref_installers, pref_time_windows, plan_date, job_ids):
     # Instantiate the data problem.
     time_matrix = copy.deepcopy(time_matrix_original)
-    data = create_data_model(time_matrix, num_vehicles, demands, penalties, end_locations, pref_dates, pref_days, pref_installers, pref_time_windows)
+    data = create_data_model(time_matrix, num_vehicles, demands, penalties, end_locations, pref_dates, pref_days, pref_installers, pref_time_windows, plan_date, job_ids)
 
     # Create the routing index manager.
     manager = pywrapcp.RoutingIndexManager(
@@ -284,11 +291,11 @@ def solve_vrp_for(time_matrix_original, num_vehicles, demands, penalties, end_lo
     solution = generate_solution(data, manager, routing)
     if solution:
         routes = extract_routes(num_vehicles, manager, routing, solution)
-        total_distance, total_load = get_total_distance_load(data, manager, routing, solution)
-        return routes, total_distance, total_load
+        total_distance, total_load, job_times = get_distance_load_times(data, manager, routing, solution)
+        return routes, total_distance, total_load, job_times
     else:
         print('No solution found.')
-        return None,None,None
+        return None,None,None,None
         
 def map_solution(factory, jobs, ins_ends, routes, fig):
     colors = ['red','yellow','green','blue','#b100cd']
