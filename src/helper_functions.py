@@ -226,7 +226,7 @@ def generate_solution(data, manager, routing):
                 else:
                     curr_penalty = base_penalty - 100*int(data['penalties'][node])
 #             print(node, data['pref_dates'][node], curr_penalty, data['penalties'][node])
-            print(node, curr_penalty)
+            # print(node, curr_penalty)
             routing.AddDisjunction([manager.NodeToIndex(node)], curr_penalty)
     
     # HANDLE SPECIFIC INSTALLER CONSTRAINT

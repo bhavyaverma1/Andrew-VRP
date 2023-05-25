@@ -80,7 +80,6 @@ dependencies:
   - libxcb=1.15=h7f8727e_0
   - libxkbcommon=1.0.1=hfa300c1_0
   - libxml2=2.9.14=h74e7548_0
-  - libxslt=1.1.35=h4e12654_0
   - lxml=4.9.1=py39h1edc446_0
   - lz4-c=1.9.4=h6a678d5_0
   - markupsafe=2.1.1=py39h7f8727e_0
