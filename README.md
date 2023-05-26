@@ -2,18 +2,11 @@
 # Route Planning and Scheduling
 
 This repository contains python implementation of a novel VRP-based Route Planner with multiple resource and time-window constraints.
-
-## Install Required Libraries using Conda
-
-Clone this repository.
-```
-conda env create -n ENVNAME --file env39.yml
 ```
 ## How to use
 1. Install Anaconda, VS Code
 https://visualstudio.microsoft.com/downloads/
-2. Open VS Code - 
-And run below command:
+2. Open VS Code and install required libraries environment using conda 
 ```
 conda env create -f env39.yml
 conda activate env39
