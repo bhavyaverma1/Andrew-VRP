@@ -2,7 +2,6 @@
 # Route Planning and Scheduling
 
 This repository contains python implementation of a novel VRP-based Route Planner with multiple resource and time-window constraints.
-```
 ## How to use
 1. Install Anaconda, VS Code
 https://visualstudio.microsoft.com/downloads/
