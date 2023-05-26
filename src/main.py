@@ -45,3 +45,11 @@ data = pd.read_csv(args['filename']) # Reading the csv
 
 day1 = next_working_date(plan_date)
 routes1, total_distance1, total_load1, job_times1, data_output_day1 = solve(data,day1,num_vehicles,ins_ends_coords)
+
+day2 = next_working_date(day1)
+routes2, total_distance2, total_load2, job_times2, data_output_day2 = solve(data_output_day1,day2,num_vehicles,ins_ends_coords)
+
+day3 = next_working_date(day2)
+routes3, total_distance3, total_load3, job_times3, data_output_day3 = solve(data_output_day2,day3,num_vehicles,ins_ends_coords)
+
+data_output_day3.to_csv('output/processed_data_3_out.csv',index=False)
