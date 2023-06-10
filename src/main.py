@@ -43,13 +43,13 @@ args = vars(parser.parse_args())
 
 data = pd.read_csv(args['filename']) # Reading the csv
 
-day1 = next_working_date(plan_date)
-routes1, total_distance1, total_load1, job_times1, data_output_day1 = solve(data,day1,num_vehicles,ins_ends_coords)
+num_days = 3
+data_output = data
+current_day = plan_date
 
-day2 = next_working_date(day1)
-routes2, total_distance2, total_load2, job_times2, data_output_day2 = solve(data_output_day1,day2,num_vehicles,ins_ends_coords)
+for i in range(num_days):
+    # print('Planning Day:',i+1)
+    current_day = next_working_date(current_day)
+    routes, total_distance, total_load, job_times, data_output = solve(data_output, current_day, num_vehicles, ins_ends_coords)
 
-day3 = next_working_date(day2)
-routes3, total_distance3, total_load3, job_times3, data_output_day3 = solve(data_output_day2,day3,num_vehicles,ins_ends_coords)
-
-data_output_day3.to_csv('output/processed_data_3_out.csv',index=False)
+data_output.to_csv('output/data_output.csv',index=False)

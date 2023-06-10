@@ -26,9 +26,6 @@ from IPython.display import display
 import warnings
 warnings.filterwarnings('ignore')
 
-import webbrowser
-from ipywidgets.embed import embed_minimal_html
-
 def solve(data,plan_date,num_vehicles,ins_ends_coords):
     
     ## CONFIGURATION 
@@ -40,7 +37,7 @@ def solve(data,plan_date,num_vehicles,ins_ends_coords):
     
     ## FILTERING ONLY 1 INSTALLER JOBS WITH STATUS = None
     jobs_installer_1 = data[(data["installers_required"].notnull()) & pd.isnull(data["status"])].reset_index(drop=True)
-    
+    print(jobs_installer_1)
     ## PROCESSING DATA FOR VRP USE
     df_pending = jobs_installer_1[['id','Latitude','Longitude']]
     new_row = pd.DataFrame({'id':0, 'Latitude':factory_coord[0],'Longitude':factory_coord[1]}, index =[0]) # Inserting factory location to top
@@ -161,10 +158,6 @@ def solve(data,plan_date,num_vehicles,ins_ends_coords):
     else:
         print('No solution found.') 
     display(fig)
-    embed_minimal_html('export.html', views=[fig])
-
-    # Open the HTML file in a new tab
-    webbrowser.open_new_tab('figure.html')
     
     if job_times==None or (not job_times):
         pass

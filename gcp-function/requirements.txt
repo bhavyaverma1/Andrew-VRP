@@ -1,0 +1,17 @@
+functions-framework==3.*
+pandas
+numpy
+python-dotenv
+googlemaps
+absl-py==1.4.0
+cspy==1.0.3
+haversine==2.7.0
+networkx==3.0
+ortools==9.5.2237
+protobuf==4.21.12
+pulp==2.7.0
+scipy==1.10.0
+tqdm==4.64.1
+vrpy==0.5.1
+google-auth
+google-api-python-client
