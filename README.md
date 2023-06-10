@@ -3,6 +3,7 @@
 
 This repository contains python implementation of a novel VRP-based Route Planner with multiple resource and time-window constraints.
 ## How to use
+### METHOD 1
 1. Install Anaconda, VS Code -
 ```
 https://www.anaconda.com/download
@@ -17,4 +18,9 @@ conda activate env39
 ```
 python main.py ../data/processed_10.csv
 ```
+
+### METHOD 2
+1. Create a Google Sheets App and make a 'Input' sheet and 'VRP Settings' with appropriate data schema.
+2. Create a Google Cloud function with the files in 'gcp-function'
+3. Now run the Extension/Macro named 'VRP' in Google Sheets.
 Thanks! :)
