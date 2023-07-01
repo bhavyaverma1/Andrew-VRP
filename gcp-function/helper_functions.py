@@ -1,6 +1,7 @@
 import sys, os, copy
 import requests, json
 import urllib.request
+import ast
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -59,7 +60,7 @@ def get_distance_time_matrices(df_pending):
 
 
 """Vehicles Routing Problem (VRP)."""
-def create_data_model(time_matrix, num_vehicles, demands, penalties, end_locations, pref_dates, pref_days, pref_installers, pref_time_windows, plan_date, job_ids, installers_req):
+def create_data_model(time_matrix, num_vehicles, demands, penalties, end_locations, pref_dates, pref_days, pref_installers, pref_time_windows, plan_date, job_ids, installers_req, ins_size):
     """Stores the data for the problem."""
     data = {}
     data['time_matrix'] = time_matrix
@@ -75,6 +76,7 @@ def create_data_model(time_matrix, num_vehicles, demands, penalties, end_locatio
     data['plan_date'] = plan_date
     data['job_ids'] = job_ids
     data['installers_req'] = installers_req
+    data['ins_size'] = ins_size
     return data
 
 def extract_routes(num_vehicles, manager, routing, solution):
@@ -178,7 +180,6 @@ def generate_solution(data, manager, routing):
     # Add Time constraint.
     dimension_name = 'Distance'
     MAX_TRAVEL_DISTANCE = int(os.getenv("MAX_TRAVEL_DISTANCE"))
-    print('MAX_TRAVEL_DISTANCE',MAX_TRAVEL_DISTANCE )
     routing.AddDimension(
         transit_callback_index,
         0,  # no slack
@@ -253,24 +254,42 @@ def generate_solution(data, manager, routing):
 #                 print(node,pref_start_time, pref_end_time)
                 distance_dimension.CumulVar(manager.NodeToIndex(node)).SetRange(pref_start_time, pref_end_time)
     
-    # HANDLE MULTIPLE INSTALLER CONSTRAINT (Currently set as last installer id is a group of 2 people)
-    installers_1= []
-    for vehicle_id in range(data['num_vehicles']):
-        if vehicle_id == data['num_vehicles']-1:
-            continue
-        installers_1.append(vehicle_id)
-    installers_2= [data['num_vehicles']-1]
-    for node in range(0, len(data['time_matrix'])):
-        if(node in data['starts'] or node in data['ends']):
-            continue
-        else:
-            
-            if data['installers_req'][node]==1:
-                routing.VehicleVar(manager.NodeToIndex(node)).SetValues([-1]+installers_1)
-            elif data['installers_req'][node]==2:
-                routing.VehicleVar(manager.NodeToIndex(node)).SetValues([-1]+installers_2)
-            else:
-                print('Cant handle more than two installers currently.')
+    # HANDLE MULTIPLE INSTALLER CONSTRAINT	
+    installers_1,installers_2,installers_3,installers_4,installers_5,installers_6= [],[],[],[],[],[]
+    for vehicle_id in range(data['num_vehicles']):	
+      if data['ins_size'][vehicle_id]==1:	
+        installers_1.append(vehicle_id)	
+      elif data['ins_size'][vehicle_id]==2:	
+        installers_2.append(vehicle_id)	
+      elif data['ins_size'][vehicle_id]==3:	
+        installers_3.append(vehicle_id)	
+      elif data['ins_size'][vehicle_id]==4:	
+        installers_4.append(vehicle_id)	
+      elif data['ins_size'][vehicle_id]==5:	
+        installers_5.append(vehicle_id)	
+      elif data['ins_size'][vehicle_id]==6:	
+        installers_6.append(vehicle_id)	
+      else:	
+        print('WOAH too many installers required for installer id: ',vehicle_id)	
+        installers_1.append(vehicle_id)	
+    for node in range(0, len(data['time_matrix'])):	
+      if(node in data['starts'] or node in data['ends']):	
+        continue	
+      else:	 	
+        if data['installers_req'][node]==1:	
+          routing.VehicleVar(manager.NodeToIndex(node)).SetValues([-1]+installers_1)	
+        elif data['installers_req'][node]==2:	
+          routing.VehicleVar(manager.NodeToIndex(node)).SetValues([-1]+installers_2)	
+        elif data['installers_req'][node]==3:	
+          routing.VehicleVar(manager.NodeToIndex(node)).SetValues([-1]+installers_3)	
+        elif data['installers_req'][node]==4:	
+          routing.VehicleVar(manager.NodeToIndex(node)).SetValues([-1]+installers_4)	
+        elif data['installers_req'][node]==5:	
+          routing.VehicleVar(manager.NodeToIndex(node)).SetValues([-1]+installers_5)	
+        elif data['installers_req'][node]==6:	
+          routing.VehicleVar(manager.NodeToIndex(node)).SetValues([-1]+installers_6)	
+        else:	
+          print('Cant handle other than 1-6 installers currently.')
 
     # Setting first solution heuristic.
     search_parameters = pywrapcp.DefaultRoutingSearchParameters()
@@ -300,10 +319,10 @@ def generate_solution(data, manager, routing):
         print_solution(data, manager, routing, best_solution)
     return best_solution
 
-def solve_vrp_for(time_matrix_original, num_vehicles, demands, penalties, end_locations, pref_dates, pref_days, pref_installers, pref_time_windows, plan_date, job_ids, installers_req):
+def solve_vrp_for(time_matrix_original, num_vehicles, demands, penalties, end_locations, pref_dates, pref_days, pref_installers, pref_time_windows, plan_date, job_ids, installers_req, ins_size):
     # Instantiate the data problem.
     time_matrix = copy.deepcopy(time_matrix_original)
-    data = create_data_model(time_matrix, num_vehicles, demands, penalties, end_locations, pref_dates, pref_days, pref_installers, pref_time_windows, plan_date, job_ids, installers_req)
+    data = create_data_model(time_matrix, num_vehicles, demands, penalties, end_locations, pref_dates, pref_days, pref_installers, pref_time_windows, plan_date, job_ids, installers_req, ins_size)
 
     # Create the routing index manager.
     manager = pywrapcp.RoutingIndexManager(
@@ -321,3 +340,33 @@ def solve_vrp_for(time_matrix_original, num_vehicles, demands, penalties, end_lo
     else:
         print('No solution found.')
         return None,None,None,None
+
+def check_tuple_type(string):
+    try:
+        evaluated = eval(string)
+        if isinstance(evaluated, tuple):
+            if all(isinstance(item, tuple) for item in evaluated):
+                return "Tuple of tuples"
+            else:
+                return "Just a tuple"
+        else:
+            return "Not a tuple"
+    except SyntaxError:
+        return "Invalid syntax"
+
+
+def parse_coordinates(coordinates_str):
+    if not coordinates_str:
+        return []
+
+    tuple_type = check_tuple_type(coordinates_str)
+
+    if tuple_type == "Tuple of tuples":
+        coordinates = ast.literal_eval(coordinates_str)
+        coordinates = list(coordinates)  # Convert tuple to list
+    elif tuple_type == "Just a tuple":
+        coordinates = [ast.literal_eval(coordinates_str)]
+    else:
+        return []
+
+    return coordinates

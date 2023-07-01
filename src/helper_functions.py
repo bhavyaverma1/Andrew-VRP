@@ -60,7 +60,7 @@ def get_distance_time_matrices(df_pending):
 
 
 """Vehicles Routing Problem (VRP)."""
-def create_data_model(time_matrix, num_vehicles, demands, penalties, end_locations, pref_dates, pref_days, pref_installers, pref_time_windows, plan_date, job_ids, installers_req):
+def create_data_model(time_matrix, num_vehicles, demands, penalties, end_locations, pref_dates, pref_days, pref_installers, pref_time_windows, plan_date, job_ids, installers_req, ins_size):
     """Stores the data for the problem."""
     data = {}
     data['time_matrix'] = time_matrix
@@ -76,6 +76,7 @@ def create_data_model(time_matrix, num_vehicles, demands, penalties, end_locatio
     data['plan_date'] = plan_date
     data['job_ids'] = job_ids
     data['installers_req'] = installers_req
+    data['ins_size'] = ins_size
     return data
 
 def extract_routes(num_vehicles, manager, routing, solution):
@@ -252,12 +253,19 @@ def generate_solution(data, manager, routing):
                 distance_dimension.CumulVar(manager.NodeToIndex(node)).SetRange(pref_start_time, pref_end_time)
     
     # HANDLE MULTIPLE INSTALLER CONSTRAINT
-    installers_1= []
+    installers_1,installers_2,installers_3,installers_4= [],[],[],[]
     for vehicle_id in range(data['num_vehicles']):
-        if vehicle_id == data['num_vehicles']-1:
-            continue
-        installers_1.append(vehicle_id)
-    installers_2= [data['num_vehicles']-1]
+        if data['ins_size'][vehicle_id]==1:
+            installers_1.append(vehicle_id)
+        elif data['ins_size'][vehicle_id]==2:
+            installers_2.append(vehicle_id)
+        elif data['ins_size'][vehicle_id]==3:
+            installers_3.append(vehicle_id)
+        elif data['ins_size'][vehicle_id]==4:
+            installers_4.append(vehicle_id)
+        else:
+            print('WOAH',vehicle_id)
+            installers_1.append(vehicle_id)
     for node in range(0, len(data['time_matrix'])):
         if(node in data['starts'] or node in data['ends']):
             continue
@@ -267,6 +275,10 @@ def generate_solution(data, manager, routing):
                 routing.VehicleVar(manager.NodeToIndex(node)).SetValues([-1]+installers_1)
             elif data['installers_req'][node]==2:
                 routing.VehicleVar(manager.NodeToIndex(node)).SetValues([-1]+installers_2)
+            elif data['installers_req'][node]==3:
+                routing.VehicleVar(manager.NodeToIndex(node)).SetValues([-1]+installers_3)
+            elif data['installers_req'][node]==4:
+                routing.VehicleVar(manager.NodeToIndex(node)).SetValues([-1]+installers_4)
             else:
                 print('Cant handle more than two installers currently.')
 
@@ -295,10 +307,10 @@ def generate_solution(data, manager, routing):
         print_solution(data, manager, routing, best_solution)
     return best_solution
 
-def solve_vrp_for(time_matrix_original, num_vehicles, demands, penalties, end_locations, pref_dates, pref_days, pref_installers, pref_time_windows, plan_date, job_ids, installers_req):
+def solve_vrp_for(time_matrix_original, num_vehicles, demands, penalties, end_locations, pref_dates, pref_days, pref_installers, pref_time_windows, plan_date, job_ids, installers_req, ins_size):
     # Instantiate the data problem.
     time_matrix = copy.deepcopy(time_matrix_original)
-    data = create_data_model(time_matrix, num_vehicles, demands, penalties, end_locations, pref_dates, pref_days, pref_installers, pref_time_windows, plan_date, job_ids, installers_req)
+    data = create_data_model(time_matrix, num_vehicles, demands, penalties, end_locations, pref_dates, pref_days, pref_installers, pref_time_windows, plan_date, job_ids, installers_req, ins_size)
 
     # Create the routing index manager.
     manager = pywrapcp.RoutingIndexManager(

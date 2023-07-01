@@ -45,11 +45,11 @@ def solve(data,plan_date,num_vehicles,ins_ends_coords):
     df_pending.set_index('id', inplace=True)
     df_pending['Latitude'] = df_pending['Latitude'].astype(float)
     df_pending['Longitude'] = df_pending['Longitude'].astype(float)
-
+    ins_size =[]
     for i in range(len(ins_ends_coords)):  # Inserting installers' end locations to df_pending
         ins_id = i+1
-        df_pending.loc[ins_id] = [ins_ends_coords[i][0],ins_ends_coords[i][1]]
-        
+        df_pending.loc[ins_id] = [ins_ends_coords[i][0][0],ins_ends_coords[i][0][1]]
+        ins_size.append(ins_ends_coords[i][1])
     # SETTING UP variables and figures for VISUALISATION
     jobs, ins_ends = [],[]
     for i, row in df_pending.iterrows():
@@ -150,7 +150,7 @@ def solve(data,plan_date,num_vehicles,ins_ends_coords):
     dist_matrix,time_matrix = get_distance_time_matrices(df_pending)
     job_ids = df_pending.index.tolist()
     
-    routes, total_distance, total_load, job_times = solve_vrp_for(time_matrix, num_vehicles, demands, penalties, end_locations, pref_dates, pref_days, pref_installers, pref_time_windows, plan_date, job_ids, installers_req)
+    routes, total_distance, total_load, job_times = solve_vrp_for(time_matrix, num_vehicles, demands, penalties, end_locations, pref_dates, pref_days, pref_installers, pref_time_windows, plan_date, job_ids, installers_req, ins_size)
     
     ## UNCOMMENT THE CODE BELOW TO VISUALIZE THE ROUTES
     if routes:

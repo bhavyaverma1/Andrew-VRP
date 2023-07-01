@@ -32,7 +32,7 @@ warnings.filterwarnings('ignore')
 file_path = '../data/processed_data_10.csv'
 plan_date = datetime.date.today() # or you can do datetime.date(year,month,day)
 num_vehicles = 4
-ins_ends_coords = [(-34.8218243,138.7292797),(-34.8104796,138.6111791),(-34.8938435,138.6918266),(-34.7810071,138.6461490)] # Set the last installer which is a team .. its endlocation to factory
+ins_ends_coords = [((-34.8218243, 138.7292797), 1), ((-34.8104796, 138.6111791), 1), ((-34.8938435, 138.6918266), 1), ((-34.7810071, 138.646149), 1)]
 # data = pd.read_csv(file_path) # Reading the csv
 
 # Parse command line arguments
@@ -43,10 +43,9 @@ args = vars(parser.parse_args())
 
 data = pd.read_csv(args['filename']) # Reading the csv
 
-num_days = 3
+num_days = 4
 data_output = data
 current_day = plan_date
-
 for i in range(num_days):
     # print('Planning Day:',i+1)
     current_day = next_working_date(current_day)
